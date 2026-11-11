@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spider-Man vs Megatron</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #05050a;
+            color: #ffffff;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .cyber-panel {
+            background: rgba(10, 15, 30, 0.9);
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn-cyber {
+            background: linear-gradient(135deg, #ff0055 0%, #7000ff 100%);
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+            transition: all 0.1s ease;
+        }
+
+        .btn-cyber:active {
+            transform: scale(0.95);
+        }
+
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen flex flex-col justify-between items-center select-none">
+    
+    <!-- CRT Scanline Effect -->
+    <div class="scanline"></div>
+
+    <!-- HUD / Top Status Bar -->
+    <header class="w-full max-w-5xl p-4 flex justify-between items-center z-20">
+        <!-- Spider-Man Health -->
+        <div class="cyber-panel p-3 rounded-lg w-1/3 flex flex-col gap-1">
+            <div class="flex justify-between items-center text-xs text-cyan-400 font-bold">
+                <span><i class="fa-solid fa-spider"></i> SPIDER-MAN</span>
+                <span id="spidey-hp-text">100/100</span>
+            </div>
+            <div class="w-full bg-gray-800 h-3 rounded overflow-hidden border border-cyan-500">
+                <div id="spidey-hp-bar" class="h-full bg-cyan-400 transition-all duration-100" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Title & Status -->
+        <div class="text-center">
+            <h1 class="text-lg md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-purple-500 to-cyan-400">
+                SPIDER-MAN VS MEGATRON
+            </h1>
+            <div class="text-[10px] text-yellow-400 font-bold mt-1 tracking-widest" id="game-status-msg">STAGE 1: DECEPTICON ASSAULT</div>
+        </div>
+
+        <!-- Megatron Health -->
+        <div class="cyber-panel p-3 rounded-lg w-1/3 flex flex-col gap-1">
+            <div class="flex justify-between items-center text-xs text-red-400 font-bold">
+                <span>MEGATRON (<span id="megatron-form-label">ROBOT</span>)</span>
+                <span id="megatron-hp-text">500/500</span>
+            </div>
+            <div class="w-full bg-gray-800 h-3 rounded overflow-hidden border border-red-500">
+                <div id="megatron-hp-bar" class="h-full bg-red-600 transition-all duration-100" style="width: 100%;"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Canvas Container -->
+    <main class="relative w-full flex-grow max-w-5xl flex justify-center items-center px-4">
+        <div class="relative w-full h-[400px] md:h-[480px] cyber-panel rounded-xl overflow-hidden shadow-2xl bg-gradient-to-b from-[#080b1a] to-[#150a1c]">
+            
+            <!-- Canvas for Game Rendering -->
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+            <!-- Start Menu Overlay -->
+            <div id="menu-overlay" class="absolute inset-0 bg-black/9rip flex flex-col justify-center items-center z-30 p-6 text-center">
+                <div class="cyber-panel p-6 md:p-8 rounded-2xl max-w-md w-full flex flex-col items-center gap-4">
+                    <div class="text-4xl text-red-500 animate-pulse"><i class="fa-solid fa-robot"></i> VS <i class="fa-solid fa-spider text-cyan-400"></i></div>
+                    <h2 class="text-xl font-black text-cyan-300">SPIDER-MAN VS MEGATRON</h2>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Megatron transforms between <span class="text-red-400 font-bold">Robot Mode</span> (Laser Blasts) and <span class="text-yellow-400 font-bold">Tank Mode</span> (Rolling Shells)! Use A/D or Arrow keys to move, W/Up to jump, and Spacebar to shoot webs!
+                    </p>
+                    <button id="start-btn" class="btn-cyber w-full py-3 rounded-lg text-white font-black tracking-wider text-base cursor-pointer">
+                        START BATTLE <i class="fa-solid fa-play ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Over / Victory Overlay -->
+            <div id="endgame-overlay" class="absolute inset-0 bg-black/90 flex flex-col justify-center items-center z-30 p-6 text-center hidden">
+                <div class="cyber-panel p-6 md:p-8 rounded-2xl max-w-md w-full flex flex-col items-center gap-4">
+                    <h2 id="end-title" class="text-2xl font-black text-cyan-400">VICTORY!</h2>
+                    <p id="end-desc" class="text-xs text-gray-300">Megatron has been dismantled!</p>
+                    <div class="text-base font-bold text-yellow-400" id="final-score">SCORE: 0</div>
+                    <button id="restart-btn" class="btn-cyber w-full py-3 rounded-lg text-white font-black tracking-wider text-base cursor-pointer">
+                        PLAY AGAIN <i class="fa-solid fa-rotate-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- On-Screen Touch Controls -->
+    <footer class="w-full max-w-5xl p-4 flex justify-between items-center z-20">
+        <div class="flex gap-3">
+            <button id="btn-left" class="cyber-panel w-16 h-16 rounded-xl flex justify-center items-center text-cyan-400 text-2xl active:bg-cyan-500/40">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button id="btn-right" class="cyber-panel w-16 h-16 rounded-xl flex justify-center items-center text-cyan-400 text-2xl active:bg-cyan-500/40">
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+        <div class="flex gap-3">
+            <button id="btn-jump" class="cyber-panel px-5 h-16 rounded-xl flex justify-center items-center text-yellow-400 font-bold text-sm tracking-widest active:bg-yellow-500/40">
+                <i class="fa-solid fa-angles-up mr-2"></i> JUMP
+            </button>
+            <button id="btn-shoot" class="btn-cyber px-6 h-16 rounded-xl flex justify-center items-center text-white font-black text-sm tracking-widest">
+                <i class="fa-solid fa-spider mr-2"></i> WEB
+            </button>
+        </div>
+    </footer>
+
+    <!-- Game Logic JavaScript -->
+    <script>
+        // Sound FX using Web Audio API
+        class SoundFX {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playWeb() {
+                this.init(); if (!this.ctx) return;
+                let o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.type = 'sine'; o.frequency.setValueAtTime(600, this.ctx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.15);
+                g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                g.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                o.connect(g); g.connect(this.ctx.destination);
+                o.start(); o.stop(this.ctx.currentTime + 0.15);
+            }
+            playLaser() {
+                this.init(); if (!this.ctx) return;
+                let o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.type = 'sawtooth'; o.frequency.setValueAtTime(450, this.ctx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.2);
+                g.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                g.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                o.connect(g); g.connect(this.ctx.destination);
+                o.start(); o.stop(this.ctx.currentTime + 0.2);
+            }
+            playExplosion() {
+                this.init(); if (!this.ctx) return;
+                let bs = this.ctx.sampleRate * 0.3, buf = this.ctx.createBuffer(1, bs, this.ctx.sampleRate), out = buf.getChannelData(0);
+                for (let i = 0; i < bs; i++) out[i] = Math.random() * 2 - 1;
+                let noise = this.ctx.createBufferSource(); noise.buffer = buf;
+                let g = this.ctx.createGain();
+                g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                g.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                noise.connect(g); g.connect(this.ctx.destination);
+                noise.start();
+            }
+        }
+        const sfx = new SoundFX();
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER, VICTORY
+        let score = 0;
+        const getGroundY = () => canvas.height - 60;
+
+        // Player: Spider-Man
+        const spidey = {
+            x: 80, y: 0, width: 44, height: 64,
+            vx: 0, vy: 0, speed: 5.5, jumpForce: -13, gravity: 0.65,
+            grounded: false, hp: 100, maxHp: 100, facing: 'right', isShooting: false, shootTimer: 0
+        };
+
+        // Boss: Megatron
+        const megatron = {
+            x: 0, y: 0, width: 75, height: 85, vx: 2,
+            hp: 500, maxHp: 500, form: 'ROBOT', transformTimer: 0, attackTimer: 0
+        };
+
+        let webs = [];
+        let enemyProjectiles = [];
+        let particles = [];
+
+        // Input Tracking
+        const keys = { left: false, right: false, up: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    shootWeb();
+                } else if (spidey.grounded) {
+                    spidey.vy = spidey.jumpForce;
+                    spidey.grounded = false;
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        });
+
+        // Touch Controls Binding
+        const bindTouch = (id, keyName) => {
+            const btn = document.getElementById(id);
+            const press = (e) => { e.preventDefault(); keys[keyName] = true; };
+            const release = (e) => { e.preventDefault(); keys[keyName] = false; };
+            btn.addEventListener('touchstart', press);
+            btn.addEventListener('touchend', release);
+            btn.addEventListener('mousedown', press);
+            btn.addEventListener('mouseup', release);
+            btn.addEventListener('mouseleave', release);
+        };
+
+        bindTouch('btn-left', 'left');
+        bindTouch('btn-right', 'right');
+
+        document.getElementById('btn-jump').addEventListener('click', () => {
+            if (spidey.grounded) {
+                spidey.vy = spidey.jumpForce;
+                spidey.grounded = false;
+            }
+        });
+        document.getElementById('btn-shoot').addEventListener('click', shootWeb);
+
+        function shootWeb() {
+            if (gameState !== 'PLAYING') return;
+            sfx.playWeb();
+            webs.push({
+                x: spidey.facing === 'right' ? spidey.x + spidey.width : spidey.x,
+                y: spidey.y + spidey.height / 2 - 6,
+                vx: spidey.facing === 'right' ? 14 : -14,
+                width: 18, height: 8
+            });
+            spidey.isShooting = true;
+            spidey.shootTimer = 12;
+        }
+
+        function initGame() {
+            spidey.x = 80;
+            spidey.y = getGroundY() - spidey.height;
+            spidey.vx = 0; spidey.vy = 0; spidey.hp = 100;
+
+            megatron.x = canvas.width - 160;
+            megatron.y = getGroundY() - 85;
+            megatron.hp = 500;
+            megatron.form = 'ROBOT';
+            megatron.transformTimer = 0;
+            megatron.attackTimer = 0;
+
+            webs = [];
+            enemyProjectiles = [];
+            particles = [];
+            score = 0;
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('menu-overlay').classList.add('hidden');
+            initGame();
+            gameState = 'PLAYING';
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('endgame-overlay').classList.add('hidden');
+            initGame();
+            gameState = 'PLAYING';
+        });
+
+        function addParticles(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    radius: Math.random() * 4 + 2,
+                    color, life: 30
+                });
+            }
+        }
+
+        // Game Update Loop
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // Spider-Man physics
+            spidey.vx = 0;
+            if (keys.left) { spidey.vx = -spidey.speed; spidey.facing = 'left'; }
+            if (keys.right) { spidey.vx = spidey.speed; spidey.facing = 'right'; }
+
+            spidey.x += spidey.vx;
+            spidey.vy += spidey.gravity;
+            spidey.y += spidey.vy;
+
+            if (spidey.x < 10) spidey.x = 10;
+            if (spidey.x + spidey.width > canvas.width - 10) spidey.x = canvas.width - 10 - spidey.width;
+
+            const groundY = getGroundY();
+            if (spidey.y + spidey.height >= groundY) {
+                spidey.y = groundY - spidey.height;
+                spidey.vy = 0;
+                spidey.grounded = true;
+            }
+
+            if (spidey.shootTimer > 0) spidey.shootTimer--;
+            else spidey.isShooting = false;
+
+            // Megatron Boss AI & Transformation
+            megatron.transformTimer++;
+            if (megatron.transformTimer > 350) {
+                megatron.transformTimer = 0;
+                megatron.form = megatron.form === 'ROBOT' ? 'TANK' : 'ROBOT';
+                sfx.playExplosion();
+                addParticles(megatron.x + megatron.width / 2, megatron.y + megatron.height / 2, megatron.form === 'TANK' ? '#eab308' : '#ef4444', 15);
+            }
+
+            if (megatron.form === 'ROBOT') {
+                megatron.height = 85; megatron.width = 75;
+                if (megatron.x > spidey.x + 60) megatron.vx = -1.8;
+                else if (megatron.x < spidey.x - 60) megatron.vx = 1.8;
+                else megatron.vx = 0;
+            } else {
+                megatron.height = 55; megatron.width = 95;
+                if (megatron.x > spidey.x) megatron.vx = -3.2;
+                else megatron.vx = 3.2;
+            }
+
+            megatron.x += megatron.vx;
+            if (megatron.x < 40) megatron.x = 40;
+            if (megatron.x + megatron.width > canvas.width - 10) megatron.x = canvas.width - 10 - megatron.width;
+            megatron.y = groundY - megatron.height;
+
+            // Megatron Attacks
+            megatron.attackTimer++;
+            let attackRate = megatron.form === 'TANK' ? 65 : 85;
+            if (megatron.attackTimer > attackRate) {
+                megatron.attackTimer = 0;
+                sfx.playLaser();
+                if (megatron.form === 'ROBOT') {
+                    enemyProjectiles.push({
+                        x: megatron.x, y: megatron.y + 30, vx: -9, width: 22, height: 10, type: 'laser'
+                    });
+                } else {
+                    enemyProjectiles.push({
+                        x: megatron.x, y: megatron.y + 10, vx: -7, vy: -3.5, gravity: 0.25, width: 14, height: 14, type: 'shell'
+                    });
+                }
+            }
+
+            // Web Projectiles collision
+            for (let i = webs.length - 1; i >= 0; i--) {
+                let w = webs[i];
+                w.x += w.vx;
+                if (
+                    w.x < megatron.x + megatron.width &&
+                    w.x + w.width > megatron.x &&
+                    w.y < megatron.y + megatron.height &&
+                    w.y + w.height > megatron.y
+                ) {
+                    megatron.hp -= 15;
+                    score += 50;
+                    addParticles(w.x, w.y, '#00f3ff', 5);
+                    webs.splice(i, 1);
+                    if (megatron.hp <= 0) triggerVictory();
+                    continue;
+                }
+                if (w.x < 0 || w.x > canvas.width) webs.splice(i, 1);
+            }
+
+            // Enemy Projectiles collision
+            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+                let ep = enemyProjectiles[i];
+                ep.x += ep.vx;
+                if (ep.type === 'shell') {
+                    ep.vy += ep.gravity;
+                    ep.y += ep.vy;
+                    if (ep.y + ep.height >= groundY) {
+                        addParticles(ep.x, groundY, '#f59e0b', 8);
+                        sfx.playExplosion();
+                        enemyProjectiles.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                if (
+                    ep.x < spidey.x + spidey.width &&
+                    ep.x + ep.width > spidey.x &&
+                    ep.y < spidey.y + spidey.height &&
+                    ep.y + ep.height > spidey.y
+                ) {
+                    spidey.hp -= (ep.type === 'shell' ? 25 : 15);
+                    addParticles(spidey.x, spidey.y, '#ff0055', 10);
+                    sfx.playExplosion();
+                    enemyProjectiles.splice(i, 1);
+                    if (spidey.hp <= 0) triggerGameOver();
+                    continue;
+                }
+
+                if (ep.x < 0 || ep.x > canvas.width) enemyProjectiles.splice(i, 1);
+            }
+
+            // Particles update
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Update HUD
+            document.getElementById('spidey-hp-text').innerText = `${Math.max(0, spidey.hp)}/${spidey.maxHp}`;
+            document.getElementById('spidey-hp-bar').style.width = `${(spidey.hp / spidey.maxHp) * 100}%`;
+            document.getElementById('megatron-hp-text').innerText = `${Math.max(0, megatron.hp)}/${megatron.maxHp}`;
+            document.getElementById('megatron-hp-bar').style.width = `${(megatron.hp / megatron.maxHp) * 100}%`;
+            document.getElementById('megatron-form-label').innerText = megatron.form;
+            document.getElementById('game-status-msg').innerText = `FORM: ${megatron.form} | SCORE: ${score}`;
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            sfx.playExplosion();
+            document.getElementById('end-title').innerText = 'DEFEATED!';
+            document.getElementById('end-title').className = 'text-2xl font-black text-red-500';
+            document.getElementById('end-desc').innerText = 'Megatron crushed Spider-Man!';
+            document.getElementById('final-score').innerText = `FINAL SCORE: ${score}`;
+            document.getElementById('endgame-overlay').classList.remove('hidden');
+        }
+
+        function triggerVictory() {
+            gameState = 'VICTORY';
+            score += 1000;
+            sfx.playExplosion();
+            document.getElementById('end-title').innerText = 'VICTORY!';
+            document.getElementById('end-title').className = 'text-2xl font-black text-cyan-400';
+            document.getElementById('end-desc').innerText = 'Spider-Man defeated Megatron!';
+            document.getElementById('final-score').innerText = `FINAL SCORE: ${score}`;
+            document.getElementById('endgame-overlay').classList.remove('hidden');
+        }
+
+        // Render Graphics
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Cyber Background Grid
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            // Ground
+            const groundY = getGroundY();
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.fillStyle = '#00f3ff';
+            ctx.fillRect(0, groundY, canvas.width, 4);
+
+            // Draw Spider-Man
+            ctx.save();
+            ctx.translate(spidey.x + spidey.width / 2, spidey.y + spidey.height / 2);
+            if (spidey.facing === 'left') ctx.scale(-1, 1);
+
+            // Boots & Legs
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(-spidey.width / 2 + 6, 12, 12, 20);
+            ctx.fillRect(2, 12, 12, 20);
+
+            // Torso
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(-spidey.width / 2 + 6, -14, spidey.width - 12, 28);
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(-spidey.width / 2 + 6, -4, 6, 14);
+            ctx.fillRect(spidey.width / 2 - 12, -4, 6, 14);
+
+            // Chest emblem
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(-3, -7, 6, 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-2, -5, 4, 4);
+
+            // Mask / Head
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(0, -22, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(5, -24, 4.5, 2.2, 0.3, 0, Math.PI * 2);
+            ctx.ellipse(11, -24, 4.5, 2.2, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Arms
+            ctx.fillStyle = '#ef4444';
+            if (spidey.isShooting) {
+                ctx.fillRect(8, -10, 18, 6);
+            } else {
+                ctx.fillRect(-spidey.width / 2 - 2, -10, 10, 6);
+                ctx.fillRect(spidey.width / 2 - 8, -10, 10, 6);
+            }
+            ctx.restore();
+
+            // Draw Megatron (Robot or Tank)
+            ctx.save();
+            if (megatron.form === 'ROBOT') {
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(megatron.x, megatron.y, megatron.width, megatron.height);
+                // Fusion Cannon
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(megatron.x - 18, megatron.y + 30, 22, 12);
+                // Eyes
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(megatron.x + 18, megatron.y + 12, 40, 8);
+            } else {
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(megatron.x, megatron.y + 20, megatron.width, 35);
+                ctx.fillStyle = '#64748b';
+                ctx.beginPath();
+                ctx.arc(megatron.x + megatron.width / 2, megatron.y + 20, 26, Math.PI, 0, false);
+                ctx.fill();
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(megatron.x - 22, megatron.y + 12, 38, 10);
+            }
+            ctx.restore();
+
+            // Draw Webs
+            ctx.fillStyle = '#e2e8f0';
+            webs.forEach(w => {
+                ctx.beginPath();
+                ctx.arc(w.x, w.y, w.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Enemy Projectiles
+            enemyProjectiles.forEach(ep => {
+                if (ep.type === 'laser') {
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fillRect(ep.x, ep.y, ep.width, ep.height);
+                } else {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(ep.x, ep.y, ep.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
+```
+eof
+
+### O'yin Xususiyatlari:
+* **To'liq Boshqaruv:** Kompyuterda `A/D` yoki `Strela` tugmalari (harakatlanish), `W` / `Yuqoriga` (sakrash), va `Spacebar` (to'r otish). Mobil va planshetlar uchun pastdagi ekrandagi sensorli tugmalar to'liq ishlaydi.
+* **Transformatsiya:** Megatron vaqti-vaqti bilan **Robot** (lazer nurlari) va **Tank** (zirhli snaryadlar) holatlariga o'tadi.
+* **Vizual Efektlar:** Jonli HUD paneli, sog'liqliq shkalasi, zarba va to'r otish effektlari qo'shilgan.
